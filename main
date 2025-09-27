@@ -1,0 +1,34 @@
+from alumno import datos_demo, registrar, buscar, actualizar, dar_de_baja, listar
+
+def menu():
+    print("\n===== MENÚ ALUMNOS =====")
+    print("1) Registrar")
+    print("2) Buscar")
+    print("3) Actualizar")
+    print("4) Dar de baja")
+    print("5) Listar")
+    print("0) Salir")
+
+def run():
+    data = datos_demo()
+    while True:
+        menu()
+        op = input("Elige una opción: ").strip()
+        if op == "1":
+            registrar(data)
+        elif op == "2":
+            buscar(data)
+        elif op == "3":
+            actualizar(data)
+        elif op == "4":
+            dar_de_baja(data)
+        elif op == "5":
+            listar(data)
+        elif op == "0":
+            print("Adiós.")
+            break
+        else:
+            print("  ! Opción inválida.")
+
+if __name__ == "__main__":
+    run()
