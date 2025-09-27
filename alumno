@@ -1,0 +1,218 @@
+import re
+from datetime import datetime
+
+CAMPOS = ["codigo", "nombre", "carrera", "semestre", "email", "activo",
+          "telefono", "direccion", "fecha_nacimiento"]
+
+def datos_demo():
+    """Devuelve lista inicial (simple)."""
+    return [
+        {"codigo": "A001", "nombre": "Ana Perez",   "carrera": "SIS", "semestre": 1,
+         "email": "ana@ucb.bo",  "activo": True, "telefono": "76543210",
+         "direccion": "Av. Busch", "fecha_nacimiento": "2000-05-10"},
+        {"codigo": "A002", "nombre": "Luis Rivera", "carrera": "SIS", "semestre": 2,
+         "email": "luis@ucb.bo", "activo": True, "telefono": "71234567",
+         "direccion": "Calle 10", "fecha_nacimiento": "1999-11-22"},
+    ]
+
+def buscar_por_codigo(data, codigo):
+    for i, a in enumerate(data):
+        if a.get("codigo") == codigo:
+            return i
+    return -1
+
+# ----- Helpers -----
+def _leer_no_vacio(prompt, minlen=1):
+    while True:
+        v = input(prompt).strip()
+        if len(v) >= minlen:
+            return v
+        print(f"  * No puede estar vacío (mínimo {minlen} caracteres).")
+
+def _leer_entero_min(prompt, minimo=1):
+    while True:
+        txt = input(prompt).strip()
+        try:
+            n = int(txt)
+            if n >= minimo:
+                return n
+            print(f"  * Debe ser >= {minimo}.")
+        except ValueError:
+            print("  * Debe ser un número entero.")
+
+def _leer_email(prompt):
+    while True:
+        e = input(prompt).strip()
+        if "@" in e:
+            return e
+        print("  * Email inválido (debe contener '@').")
+
+def _leer_activo_bool(prompt, default=True):
+    while True:
+        txt = input(f"{prompt} [{'s' if default else 'n'}]: ").strip().lower()
+        if txt == "":
+            return default
+        if txt in ("s", "si", "y", "yes", "true", "t", "1"):
+            return True
+        if txt in ("n", "no", "false", "f", "0"):
+            return False
+        print("  * Responde 's' o 'n' (o Enter para dejar por defecto).")
+
+def _leer_telefono(prompt):
+    while True:
+        tel = input(prompt).strip()
+        if tel.isdigit() and len(tel) == 8:
+            return tel
+        print("  * Teléfono inválido (8 dígitos).")
+
+def _leer_fecha(prompt):
+    while True:
+        fecha = input(prompt).strip()
+        try:
+            datetime.strptime(fecha, "%Y-%m-%d")
+            return fecha
+        except ValueError:
+            print("  * Fecha inválida (formato correcto: YYYY-MM-DD).")
+
+def _validar_codigo_formato(codigo):
+    return re.match(r"^[A-Za-z]\d+$", codigo) is not None
+
+def _validar_carrera(carrera):
+    return carrera.isalpha()
+
+# ====== Operaciones CRUD ======
+def registrar(data):
+    print("\n> Registrar alumno")
+
+    codigo = _leer_no_vacio("Código: ")
+    if not _validar_codigo_formato(codigo):
+        print("  ! Código inválido (ejemplo válido: A001)")
+        return
+    if buscar_por_codigo(data, codigo) != -1:
+        print("  ! Código ya existe.")
+        return
+
+    nombre = _leer_no_vacio("Nombre: ", minlen=3)
+    carrera = _leer_no_vacio("Carrera: ")
+    if not _validar_carrera(carrera):
+        print("  ! La carrera solo debe contener letras.")
+        return
+    semestre = _leer_entero_min("Semestre: ", minimo=1)
+    email = _leer_email("Email: ")
+    activo = _leer_activo_bool("¿Activo?", True)
+    telefono = _leer_telefono("Teléfono (8 dígitos): ")
+    direccion = _leer_no_vacio("Dirección: ")
+    fecha_nacimiento = _leer_fecha("Fecha de nacimiento (YYYY-MM-DD): ")
+
+    nuevo = {
+        "codigo": codigo, "nombre": nombre, "carrera": carrera,
+        "semestre": semestre, "email": email, "activo": activo,
+        "telefono": telefono, "direccion": direccion, "fecha_nacimiento": fecha_nacimiento
+    }
+    data.append(nuevo)
+    print("  Alumno registrado.")
+
+def buscar(data):
+    print("\n> Buscar alumno")
+    codigo = input("Código: ").strip()
+    idx = buscar_por_codigo(data, codigo)
+    if idx == -1:
+        print(" No encontrado.")
+    else:
+        _imprimir_alumno(data[idx])
+
+def actualizar(data):
+    print("\n> Actualizar alumno")
+    codigo = input("Código: ").strip()
+    idx = buscar_por_codigo(data, codigo)
+    if idx == -1:
+        print("  No encontrado.")
+        return
+
+    alumno = data[idx]
+    print("Presiona Enter para mantener el valor actual.")
+
+    nombre = input(f"Nombre [{alumno['nombre']}]: ").strip()
+    if nombre:
+        if len(nombre) < 3:
+            print("  Nombre demasiado corto.")
+            return
+        alumno["nombre"] = nombre
+
+    carrera = input(f"Carrera [{alumno['carrera']}]: ").strip()
+    if carrera:
+        if not _validar_carrera(carrera):
+            print("  La carrera debe ser solo letras.")
+            return
+        alumno["carrera"] = carrera
+
+    sem = input(f"Semestre [{alumno['semestre']}]: ").strip()
+    if sem:
+        try:
+            sem = int(sem)
+            if sem >= 1:
+                alumno["semestre"] = sem
+            else:
+                print("  Semestre debe ser >= 1.")
+                return
+        except ValueError:
+            print("  Debe ser número entero.")
+            return
+
+    em = input(f"Email [{alumno['email']}]: ").strip()
+    if em:
+        if "@" not in em:
+            print("  Email inválido.")
+            return
+        alumno["email"] = em
+
+    tel = input(f"Teléfono [{alumno['telefono']}]: ").strip()
+    if tel:
+        if not (tel.isdigit() and len(tel) == 8):
+            print("  Teléfono inválido.")
+            return
+        alumno["telefono"] = tel
+
+    dirn = input(f"Dirección [{alumno['direccion']}]: ").strip()
+    if dirn:
+        alumno["direccion"] = dirn
+
+    fnac = input(f"Fecha nacimiento [{alumno['fecha_nacimiento']}]: ").strip()
+    if fnac:
+        try:
+            datetime.strptime(fnac, "%Y-%m-%d")
+            alumno["fecha_nacimiento"] = fnac
+        except ValueError:
+            print("  Fecha inválida.")
+            return
+
+    act = input(f"Activo (s/n) [{ 's' if alumno['activo'] else 'n' }]: ").strip().lower()
+    if act in ("s", "n"):
+        alumno["activo"] = (act == "s")
+
+    print("  * Alumno actualizado.")
+
+def dar_de_baja(data):
+    print("\n> Dar de baja")
+    codigo = input("Código: ").strip()
+    idx = buscar_por_codigo(data, codigo)
+    if idx == -1:
+        print("  No encontrado.")
+    else:
+        data[idx]["activo"] = False
+        print("  Alumno dado de baja (activo = no).")
+
+def listar(data):
+    print("\n> Listado de alumnos")
+    if not data:
+        print("  (Lista vacía)")
+        return
+    for a in data:
+        _imprimir_alumno(a)
+
+# ---- Auxiliar de impresión ----
+def _imprimir_alumno(a):
+    estado = "sí" if a["activo"] else "no"
+    print(f"[{a['codigo']}] {a['nombre']} | Carrera: {a['carrera']} | Sem: {a['semestre']} | "
+          f"Email: {a['email']} | Activo: {estado} | Tel: {a['telefono']} | "
+          f"Dir: {a['direccion']} | Nac: {a['fecha_nacimiento']}")
